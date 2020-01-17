@@ -1,66 +1,91 @@
-#----- AWS -------
+#----- bounties -----
+bbounties(){
+echo "$(tput setaf 1)bmkdir $(tput setab 7)artssec.com$(tput sgr 0)"
+echo "$(tput setab 7)#----- tools -----$(tput sgr 0)"
+echo "$(tput setaf 1)bdirb $(tput setab 7)artssec.com$(tput sgr 0)"
+echo "$(tput setaf 1)bnmaptcp $(tput setab 7)artssec.com$(tput sgr 0)"
+echo "$(tput setaf 1)bnmapudp $(tput setab 7)artssec.com$(tput sgr 0)"
 
-s3ls(){
-aws s3 ls s3://$1
+echo "$(tput setab 7)#----- recon -----$(tput sgr 0)"
+echo "$(tput setaf 1)bamass $(tput setab 7)artssec.com$(tput sgr 0)"
+echo "$(tput setaf 1)bassetfinder $(tput setab 7)artssec.com$(tput sgr 0)"
+echo "$(tput setaf 1)bsublist3r $(tput setab 7)artssec.com$(tput sgr 0)"
+echo "$(tput setaf 1)bcertspotter $(tput setab 7)artssec.com$(tput sgr 0)"
+echo "$(tput setaf 1)bcrt $(tput setab 7)artssec.com$(tput sgr 0)"
+echo "$(tput setaf 1)brecon $(tput setab 7)artssec.com$(tput sgr 0)"
 }
 
-s3cp(){
-aws s3 cp $2 s3://$1 
+#----- mkdir -----
+bmkdir(){
+dia=$(date '+%Y-%m-%d')
+mkdir -p /home/pentest/compartido_docker/prueba/${1}/${dia}/dirb/
+mkdir -p /home/pentest/compartido_docker/prueba/${1}/${dia}/nmap/
+mkdir -p /home/pentest/compartido_docker/prueba/${1}/${dia}/amass/
+mkdir -p /home/pentest/compartido_docker/prueba/${1}/${dia}/assetfinder/
+mkdir -p /home/pentest/compartido_docker/prueba/${1}/${dia}/sublist3r/
+mkdir -p /home/pentest/compartido_docker/prueba/${1}/${dia}/certspotter/
+mkdir -p /home/pentest/compartido_docker/prueba/${1}/${dia}/crt/
 }
 
-#---- Content discovery ----
-thewadl(){ #this grabs endpoints from a application.wadl and puts them in yahooapi.txt
-curl -s $1 | grep path | sed -n "s/.*resource path=\"\(.*\)\".*/\1/p" | tee -a ~/tools/dirsearch/db/yahooapi.txt
-}
 
 #----- recon -----
-crtndstry(){
-./tools/crtndstry/crtndstry $1
+bamass(){
+amass enum -d ${1} -o /home/pentest/compartido_docker/prueba/${1}/${dia}/amass/amass_${1}.txt
 }
 
-am(){ #runs amass passively and saves to json
-amass enum --passive -d $1 -json $1.json
-jq .name $1.json | sed "s/\"//g"| httprobe -c 60 | tee -a $1-domains.txt
+bassetfinder(){
+assetfinder -subs-only ${1} >> /home/pentest/compartido_docker/prueba/${1}/${dia}/assetfinder/assetfinder_${1}.txt
 }
 
-certprobe(){ #runs httprobe on all the hosts from certspotter
-curl -s https://crt.sh/\?q\=\%.$1\&output\=json | jq -r '.[].name_value' | sed 's/\*\.//g' | sort -u | httprobe | tee -a ./all.txt
+bsublist3r(){
+python /home/pentest/tools/Sublist3r/sublist3r.py -d ${1} -o /home/pentest/compartido_docker/prueba/${1}/${dia}/sublist3r/sublist3r_${1}.txt
 }
 
-mscan(){ #runs masscan
-sudo masscan -p4443,2075,2076,6443,3868,3366,8443,8080,9443,9091,3000,8000,5900,8081,6000,10000,8181,3306,5000,4000,8888,5432,15672,9999,161,4044,7077,4040,9000,8089,443,744$}
-}
-
-certspotter(){ 
-curl -s https://certspotter.com/api/v0/certs\?domain\=$1 | jq '.[].dns_names[]' | sed 's/\"//g' | sed 's/\*\.//g' | sort -u | grep $1
-} #h/t Michiel Prins
-
-crtsh(){
-curl -s https://crt.sh/?q\=%.$1\&output\=json | jq -r '.[].name_value' | sed 's/\*\.//g' | sort -u
-}
-
-certnmap(){
-curl https://certspotter.com/api/v0/certs\?domain\=$1 | jq '.[].dns_names[]' | sed 's/\"//g' | sed 's/\*\.//g' | sort -u | grep $1  | nmap -T5 -Pn -sS -i - -$
+bcertspotter(){
+curl https://certspotter.com/api/v0/certs\?domain\=${1} -s | jq '.[].dns_names[]' | sed 's/\"//g' | sed 's/\*\.//g' | sort -u | grep ${1} >> /home/pentest/compartido_docker/prueba/${1}/${dia}/certspotter/certspotter_${1}.txt
 } #h/t Jobert Abma
 
-ipinfo(){
-curl http://ipinfo.io/$1
+
+bcrt(){
+curl -s https://crt.sh/\?q\=\%.${1}\&output\=json -s | jq -r '.[].name_value' | sed 's/\*\.//g' | sort -u >> /home/pentest/compartido_docker/prueba/${1}/${dia}/crt/crt${1}.txt
+}
+
+brecon(){
+echo "$(tput setaf 1)bmkdir$(tput sgr 0)"
+bmkdir ${1}
+echo "$(tput setaf 1)bamass$(tput sgr 0)"
+bamass ${1}
+echo "$(tput setaf 1)bassetfinder$(tput sgr 0)"
+bassetfinder ${1}
+echo "$(tput setaf 1)bsublist3r$(tput sgr 0)"
+bsublist3r ${1}
+echo "$(tput setaf 1)bcertnmap$(tput sgr 0)"
+bcertspotter ${1}
+echo "$(tput setaf 1)bcertspotter$(tput sgr 0)"
+bcrt ${1}
+echo "$(tput setaf 1)creando archivo final de dominios$(tput sgr 0)"
+cat /home/pentest/compartido_docker/prueba/${1}/${dia}/amass/amass_${1}.txt /home/pentest/compartido_docker/prueba/${1}/${dia}/assetfinder/assetfinder_${1}.txt /home/pentest/compartido_docker/prueba/${1}/${dia}/sublist3r/sublist3r_${1}.txt /home/pentest/compartido_docker/prueba/${1}/${dia}/certspotter/certspotter_${1}.txt /home/pentest/compartido_docker/prueba/${1}/${dia}/crt/crt${1}.txt >> /home/pentest/compartido_docker/prueba/${1}/${dia}/merge_${1}.txt
+sort /home/pentest/compartido_docker/prueba/${1}/${dia}/merge_${1}.txt | uniq >> /home/pentest/compartido_docker/prueba/${1}/${dia}/final_${1}.txt
 }
 
 
-#------ Tools ------
-dirsearch(){ runs dirsearch and takes host and extension as arguments
-python3 ~/tools/dirsearch/dirsearch.py -u $1 -e $2 -t 50 -b 
+#----- tools -----
+bmiip(){
+curl ifconfig.io
+}   
+
+
+bdirb(){
+#dominio=$(echo $1 | sed 's/https:\/\///g')
+#screen -A -m -d -S screen_dirb_${dominio} dirb $1 /home/pentest/tools/listas/commonfinal.txt -z 2000 -o /home/pentest/compartido_docker/prueba/${1}/${dia}/dirb/$dirb_${dominio}.txt -w -R 
+screen -A -m -d -S screen_dirb_${1} dirb https://$1/ /home/pentest/tools/listas/commonfinal.txt -z 2000 -o /home/pentest/compartido_docker/prueba/${1}/${dia}/dirb/$dirb_${1}.txt -w -R 
 }
 
-sqlmap(){
-python ~/tools/sqlmap*/sqlmap.py -u $1 
+bnmaptcp(){
+screen -A -m -d -S screen_nmaptcp_${1} nmap -Pn -sTV -vv -p- -n --max-retries 1 -oA mkdir /home/pentest/compartido_docker/prueba/${1}/${dia}/nmap/nmap_tcp_full_{1} {1}
 }
 
-ncx(){
-nc -l -n -vv -p $1 -k
+bnmapudp(){
+screen -A -m -d -S screen_nmaptcp_${1} sudo nmap -Pn -sUV -vv --top-ports 100 -n --max-retries 1 -oA /home/pentest/compartido_docker/prueba/${1}/${dia}/nmap/nmap_udp_top100_{1} {1}
 }
 
-crtshdirsearch(){ #gets all domains from crtsh, runs httprobe and then dir bruteforcers
-curl -s https://crt.sh/?q\=%.$1\&output\=json | jq -r '.[].name_value' | sed 's/\*\.//g' | sort -u | httprobe -c 50 | grep https | xargs -n1 -I{} python3 ~/tools/dirsearch/dirsearch.py -u {} -e $2 -t 50 -b 
-}
